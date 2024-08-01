@@ -11,6 +11,9 @@ class GradCAM():
         self.model_1 = model_1
         self.model_2 = model_2
     
+    def preprocessing_img(self, img):
+        preprocessed_img = np.expand_dims(img, 0) / 255.0
+        return preprocessed_img
     
     def model_12(self, model, last_conv_layer_name):
         '''
@@ -20,26 +23,26 @@ class GradCAM():
         '''
 
         if last_conv_layer_name=='':
-            last_conv_layer_name = model.layers[1].name
+            last_conv_layer_name = model.layers[-3].name
         last_conv_layer = model.get_layer(last_conv_layer_name)
         
         # 첫 번째 단계, 입력 이미지를 마지막 컨볼루션 층의 activation으로 매핑하는 모델을 만듭니다.
-        model_1 = tf.keras.Model(last_conv_layer.inputs, last_conv_layer.output)
+        model_1 = tf.keras.Model(model.inputs, last_conv_layer.output)
         
         # 두 번째 단계, 마지막 컨볼루션 층의 activation을 최종 클래스 예측으로 매핑하는 모델을 만듭니다.
         model_input = tf.keras.Input(shape=last_conv_layer.output.shape[1:])
-        x_2 = model.get_layer("pool1")(model_input)
-        x_2 = model.get_layer("fc1")(x_2)
+        x_2 = model_input
+        x_2 = model.get_layer(model.layers[-2].name)(x_2)
+        x_2 = model.get_layer(model.layers[-1].name)(x_2)
         model_2=tf.keras.Model(model_input, x_2)
         
         return model_1, model_2
         
     def make_gradcam_heatmap(self, img):
-        
-        x=np.expand_dims(img, axis=0)
+        img = self.preprocessing_img(img)
         with tf.GradientTape() as tape:
             # 마지막 컨볼루션 층의 activation을 계산하고 tape가 이를 확인함.
-            last_conv_layer_output = self.model_1(x)
+            last_conv_layer_output = self.model_1(img)
             tape.watch(last_conv_layer_output)
             # 클래스 예측을 계산.
             preds = self.model_2(last_conv_layer_output)
@@ -68,7 +71,7 @@ class GradCAM():
     
     def return_color_heatmap(self, img): 
         '''
-        img = (256, 256, 3) 형태의 이미지
+        img =  model predict를 진행할 input image
         '''
         # GradCAM 히트맵을 생성.
         heatmap = self.make_gradcam_heatmap(img)

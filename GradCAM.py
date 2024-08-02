@@ -26,10 +26,10 @@ class GradCAM():
             last_conv_layer_name = model.layers[-3].name
         last_conv_layer = model.get_layer(last_conv_layer_name)
         
-        # 첫 번째 단계, 입력 이미지를 마지막 컨볼루션 층의 activation으로 매핑하는 모델을 만듭니다.
+        # 첫 번째 단계, 입력 이미지를 마지막 컨볼루션 층의 activation으로 매핑하는 모델을 만듦.
         model_1 = tf.keras.Model(model.inputs, last_conv_layer.output)
         
-        # 두 번째 단계, 마지막 컨볼루션 층의 activation을 최종 클래스 예측으로 매핑하는 모델을 만듭니다.
+        # 두 번째 단계, 마지막 컨볼루션 층의 activation을 최종 클래스 예측으로 매핑하는 모델을 만듦.
         model_input = tf.keras.Input(shape=last_conv_layer.output.shape[1:])
         x_2 = model_input
         x_2 = model.get_layer(model.layers[-2].name)(x_2)
